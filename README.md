@@ -26,12 +26,14 @@ Working:
 - Stremio opens from the Bigscreen app list.
 - KDE Connect pairs with the phone, and the pairing survives container
   restarts.
-- The Unified Remote server starts with the session on its X11 backend, and
-  XTest key presses move the Bigscreen selection (checked with `xdotool`).
+- Unified Remote buttons from the phone (the Stremio remote: arrows, OK,
+  back) move the Bigscreen and Stremio selection.
 - Host keyboard and mouse inside the Bigscreen window.
 
+Not working: the Unified Remote touchpad. See Known limits.
+
 Not tested yet: the TV itself (the test host has one monitor for now), Kodi
-4K playback, Unified Remote from the phone and CEC.
+4K playback, KDE Connect remote input and CEC.
 
 ## Apps
 
@@ -184,6 +186,12 @@ to the defaults below.
 - Hyprland sends no frame callbacks to windows on hidden workspaces, so the
   session barely moves while workspace 11 is out of view. Once the workspace
   is on screen it runs at full speed. On the TV it is always on screen.
+- No pointer from the phone. In window mode the visible pointer belongs to
+  the host compositor, and XTest pointer motion does not reach the session:
+  `xdotool mousemove` produces no X input events and leaves the pointer
+  where it was. Unified Remote keys and buttons work; its touchpad does not.
+  Use the host mouse (press "TV", then Right Ctrl to capture) when a pointer
+  is needed.
 - No game controllers. The Bigscreen inputhandler reads them through SDL,
   which needs `/dev/input`, `/run/udev` and the host `input` group in the
   container. That access also exposes the host keyboard, so it was dropped.
