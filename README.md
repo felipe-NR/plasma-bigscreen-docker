@@ -64,7 +64,7 @@ The container gets:
 | Host Wayland socket | Show the session as a host window |
 | PipeWire and PulseAudio sockets | Sound through the host audio server |
 | `/dev/dri` | GPU rendering and video decoding |
-| Host network | Phones find KDE Connect and Unified Remote by broadcast |
+| Ports on `LAN_IP` | KDE Connect and Unified Remote from the phone |
 | `cap_add: SYS_NICE` | `kwin_wayland` ships with the `cap_sys_nice` file capability and the kernel refuses to run it without it |
 | Volume `home` | Bigscreen and app settings |
 | `MEDIA_DIR` (read-only) | Media library at `/media` |
@@ -132,7 +132,8 @@ after copying.
 The image ships the [Unified Remote](https://www.unifiedremote.com/) server
 (`/opt/urserver`, version pinned with its sha256 in the Dockerfile), started
 with the Bigscreen session. Install the Unified Remote app on the phone and
-pick the server from the list.
+add the server by the host LAN address (`LAN_IP`, port 9512). Discovery by
+broadcast does not reach the container network.
 
 The server runs with its X11 backend. Its key presses go to the session's
 Xwayland, which hands them to KWin through libei, so they reach Bigscreen
@@ -140,25 +141,27 @@ whatever window has focus on the host. With its Wayland backend the server
 would create a `/dev/uinput` device, and the host compositor would deliver
 those keys to the focused host window instead.
 
-Ports: 9511/udp for discovery, 9512/tcp and 9512/udp for the connection. The
-web manager listens on `127.0.0.1:9510` only. With ufw:
-
-```sh
-sudo ufw allow from 192.168.1.0/24 to any port 9511:9512 proto udp comment 'Unified Remote'
-sudo ufw allow from 192.168.1.0/24 to any port 9512 proto tcp comment 'Unified Remote'
-```
+Compose publishes 9512/tcp and 9511 to 9512/udp on `LAN_IP`. The web
+manager listens on port 9510 inside the container and is not published.
 
 ### KDE Connect
 
-KDE Connect is the second phone remote. The container uses the host network,
-so the KDE Connect daemon inside it listens on the host ports 1714 to 1764. A
-host firewall that drops incoming traffic hides it from your phone. With ufw,
-allow those ports from your LAN (replace the subnet with yours):
+KDE Connect is the second phone remote. Compose publishes 1716/tcp and
+1716/udp for the connection and 1739 to 1764/tcp for file transfers, on
+`LAN_IP`. As with Unified Remote, the phone does not find the container by
+broadcast: in the KDE Connect app, add the device by IP with `LAN_IP`.
 
-```sh
-sudo ufw allow from 192.168.1.0/24 to any port 1714:1764 proto udp comment 'KDE Connect'
-sudo ufw allow from 192.168.1.0/24 to any port 1714:1764 proto tcp comment 'KDE Connect'
-```
+### Network and firewall
+
+The container has its own network namespace. KWin creates an abstract X11
+socket for the session's Xwayland, and abstract sockets belong to the network
+namespace: with `network_mode: host`, that socket answered `DISPLAY=:0` for
+X11 apps on the host desktop, which then failed with "Authorization
+required".
+
+Docker publishes ports ahead of ufw, so no ufw rule is needed for them, and
+ufw does not restrict them either. Binding them to `LAN_IP` keeps them off the
+other interfaces.
 
 ## Settings
 
@@ -170,15 +173,14 @@ to the defaults below.
 | `HTPC_LANG` | `pt_BR.UTF-8` | Interface language (`en_US.UTF-8` and `pt_BR.UTF-8` are generated) |
 | `HTPC_TZ` | Host timezone | Clock timezone |
 | `MEDIA_DIR` | `~/Videos` | Folder mounted read-only at `/media` |
+| `HTPC_HOSTNAME` | Host name | Name the phones see for KDE Connect and Unified Remote |
+| `LAN_IP` | Address of the default route interface | Where the phone remote ports are published |
 
 ## Known limits
 
 - No Flatpak. bubblewrap needs user namespaces, which the default Docker
   seccomp profile blocks, so apps come from Arch packages. For the same
   reason the QtWebEngine and WebKitGTK sandboxes are turned off.
-- The container shares the host network, so its Stremio streaming server
-  takes ports 11470 and 12470. Close Stremio on the host while Stremio runs
-  in Bigscreen, or the second one to start finds the ports taken.
 - Hyprland sends no frame callbacks to windows on hidden workspaces, so the
   session barely moves while workspace 11 is out of view. Once the workspace
   is on screen it runs at full speed. On the TV it is always on screen.

@@ -10,9 +10,19 @@ services:
         HTPC_GID: ${HTPC_GID:-1000}
     image: plasma-bigscreen-docker:latest
     container_name: plasma-bigscreen
-    # Host networking lets KDE Connect and Unified Remote find phones on the
-    # LAN by broadcast.
-    network_mode: host
+    # Own network namespace on purpose: KWin binds an abstract X11 socket for
+    # its Xwayland, and in the host namespace that socket captures DISPLAY=:0
+    # from X11 apps on the host desktop.
+    hostname: ${HTPC_HOSTNAME:?run scripts/setup-env.sh first}
+    # Bound to the LAN address because Docker publishes ports ahead of ufw.
+    ports:
+      # KDE Connect: identity on 1716, file transfers on 1739 to 1764.
+      - "${LAN_IP:?run scripts/setup-env.sh first}:1716:1716/tcp"
+      - "${LAN_IP}:1716:1716/udp"
+      - "${LAN_IP}:1739-1764:1739-1764/tcp"
+      # Unified Remote.
+      - "${LAN_IP}:9512:9512/tcp"
+      - "${LAN_IP}:9511-9512:9511-9512/udp"
     shm_size: 1g
     # kwin_wayland ships with the cap_sys_nice file capability for realtime
     # scheduling. The kernel refuses to exec it unless the capability is in

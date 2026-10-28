@@ -18,6 +18,8 @@ done
 
 media_dir=${MEDIA_DIR:-$HOME/Videos}
 timezone=$(timedatectl show -p Timezone --value 2>/dev/null || echo UTC)
+# Address of the interface that holds the default route, where phones reach us.
+lan_ip=$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}')
 
 cat > .env <<EOF
 HTPC_UID=$(id -u)
@@ -29,6 +31,8 @@ HOST_WAYLAND_DISPLAY=$WAYLAND_DISPLAY
 MEDIA_DIR=$media_dir
 HTPC_LANG=${HTPC_LANG:-pt_BR.UTF-8}
 HTPC_TZ=${HTPC_TZ:-$timezone}
+HTPC_HOSTNAME=${HTPC_HOSTNAME:-$(hostname)}
+LAN_IP=${LAN_IP:-$lan_ip}
 EOF
 
 echo "Wrote .env:"

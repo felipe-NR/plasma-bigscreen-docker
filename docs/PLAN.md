@@ -74,12 +74,16 @@ capability. Still open: focus behaviour once the TV is a second monitor.
 1. Unified Remote server in the container on its X11 backend, so its input
    goes through Xwayland and libei into the nested KWin (ports 9511 and
    9512).
-2. KDE Connect on the phone as fallback remote and keyboard (ports 1714 to
-   1764). Paired on 2026-10-28.
-3. Host keyboard and mouse through the Bigscreen window.
-4. TV remote over CEC through a Pulse-Eight USB-CEC adapter passed to the
+2. KDE Connect on the phone as fallback remote and keyboard (ports 1716 and
+   1739 to 1764). Paired on 2026-10-28.
+3. The container keeps its own network namespace and publishes those ports on
+   the LAN address. With host networking, the abstract X11 socket of the
+   session's Xwayland took over `DISPLAY=:0` for X11 apps on the host. Phones
+   add the server by IP, since broadcasts do not reach the container.
+4. Host keyboard and mouse through the Bigscreen window.
+5. TV remote over CEC through a Pulse-Eight USB-CEC adapter passed to the
    container. Optional purchase.
-5. On-screen text input through `plasma-keyboard`.
+6. On-screen text input through `plasma-keyboard`.
 
 ### 5. Dedicated HTPC mode (optional)
 
