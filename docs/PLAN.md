@@ -15,9 +15,12 @@ Docker playing the part of an HTPC that uses the TV as its display.
 - **Native packages, no Flatpak.** bubblewrap needs user namespaces, which the
   default Docker seccomp profile blocks. Kodi, mpv and Firefox come from the
   Arch repositories.
-- **Controller first, CEC later.** The AMD iGPU on the test host exposes no
-  `/dev/cec*` on HDMI, so the TV remote needs a USB-CEC adapter. The first
-  controller is an 8BitDo Ultimate 2C (2.4 GHz dongle and Bluetooth).
+- **Phone remotes, CEC later.** Unified Remote is the main remote and KDE
+  Connect the fallback, both on the phone. An 8BitDo Ultimate 2C worked
+  through the Bigscreen inputhandler, but controller support needs
+  `/dev/input` in the container, which also exposes the host keyboard, so it
+  was dropped. The AMD iGPU on the test host exposes no `/dev/cec*` on HDMI,
+  so the TV remote needs a USB-CEC adapter.
 
 ## Sources and what was kept
 
@@ -68,12 +71,15 @@ capability. Still open: focus behaviour once the TV is a second monitor.
 
 ### 4. Input
 
-1. 8BitDo Ultimate 2C over the 2.4 GHz dongle, then over Bluetooth.
-2. KDE Connect on a phone as remote and keyboard (ports 1714 to 1764; the
-   container uses host networking).
-3. TV remote over CEC through a Pulse-Eight USB-CEC adapter passed to the
+1. Unified Remote server in the container on its X11 backend, so its input
+   goes through Xwayland and libei into the nested KWin (ports 9511 and
+   9512).
+2. KDE Connect on the phone as fallback remote and keyboard (ports 1714 to
+   1764). Paired on 2026-10-28.
+3. Host keyboard and mouse through the Bigscreen window.
+4. TV remote over CEC through a Pulse-Eight USB-CEC adapter passed to the
    container. Optional purchase.
-4. On-screen text input through `plasma-keyboard`.
+5. On-screen text input through `plasma-keyboard`.
 
 ### 5. Dedicated HTPC mode (optional)
 

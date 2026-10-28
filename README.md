@@ -15,7 +15,7 @@ Early work. Tested on 2026-10-28 with:
 | Host | Omarchy 4.0.6, Hyprland 0.56.2, kernel 7.2.8 |
 | GPU | AMD Radeon 780M (Phoenix1), Mesa 26.2.5 |
 | Image | Arch Linux, Plasma Bigscreen 6.8.1 |
-| Controller | 8BitDo Ultimate 2C on its 2.4 GHz dongle |
+| Remotes | Unified Remote 3.14 and KDE Connect on an Android phone |
 
 Working:
 
@@ -23,11 +23,15 @@ Working:
   timezone.
 - VA-API decoding of H.264, HEVC Main10 and AV1 on the host GPU (`vainfo`).
 - Audio through the host PipeWire server.
-- Controller navigation with the D-pad and the left stick, including a
-  controller connected after the container started.
+- Stremio opens from the Bigscreen app list.
+- KDE Connect pairs with the phone, and the pairing survives container
+  restarts.
+- The Unified Remote server starts with the session on its X11 backend, and
+  XTest key presses move the Bigscreen selection (checked with `xdotool`).
+- Host keyboard and mouse inside the Bigscreen window.
 
 Not tested yet: the TV itself (the test host has one monitor for now), Kodi
-4K playback, the controller over Bluetooth, KDE Connect pairing and CEC.
+4K playback, Unified Remote from the phone and CEC.
 
 ## Apps
 
@@ -42,10 +46,16 @@ commit (`STREMIO_AUR_COMMIT` in the Dockerfile).
 runs KWin as a Wayland client, so the whole Bigscreen session lives in one
 host window.
 
-The Bigscreen inputhandler reads controllers through SDL and injects key
-presses through the XDG RemoteDesktop portal of the nested session. Controller
-input stays inside Bigscreen and never reaches the host desktop, and the
-container needs no `/dev/uinput`.
+Input comes from three places, and none of them needs `/dev/input` or
+`/dev/uinput` in the container:
+
+- The host keyboard and mouse reach the window like any other Wayland
+  client. Right Ctrl makes KWin capture pointer and keyboard, so host
+  shortcuts such as `SUPER+2` do nothing until you press Right Ctrl again.
+- Unified Remote sends XTest events to the session's Xwayland, which passes
+  them to KWin through libei (see below).
+- KDE Connect runs inside the session as the second phone remote. Its
+  remote input plugin is not tested yet.
 
 The container gets:
 
@@ -54,7 +64,7 @@ The container gets:
 | Host Wayland socket | Show the session as a host window |
 | PipeWire and PulseAudio sockets | Sound through the host audio server |
 | `/dev/dri` | GPU rendering and video decoding |
-| `/dev/input`, `/run/udev`, host network | Controllers, including hotplug |
+| Host network | Phones find KDE Connect and Unified Remote by broadcast |
 | `cap_add: SYS_NICE` | `kwin_wayland` ships with the `cap_sys_nice` file capability and the kernel refuses to run it without it |
 | Volume `home` | Bigscreen and app settings |
 | `MEDIA_DIR` (read-only) | Media library at `/media` |
@@ -172,6 +182,11 @@ to the defaults below.
 - Hyprland sends no frame callbacks to windows on hidden workspaces, so the
   session barely moves while workspace 11 is out of view. Once the workspace
   is on screen it runs at full speed. On the TV it is always on screen.
+- No game controllers. The Bigscreen inputhandler reads them through SDL,
+  which needs `/dev/input`, `/run/udev` and the host `input` group in the
+  container. That access also exposes the host keyboard, so it was dropped.
+  Commit 8536cf0 has the compose settings that worked with an 8BitDo
+  Ultimate 2C.
 - `/etc/xdg/kwinrc` sets `XwaylandEisNoPrompt=true`, so any X11 client in
   the session can send input without the KWin prompt. Only the session's own
   apps can reach its Xwayland.

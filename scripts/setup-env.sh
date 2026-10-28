@@ -24,7 +24,6 @@ HTPC_UID=$(id -u)
 HTPC_GID=$(id -g)
 VIDEO_GID=$(gid video)
 RENDER_GID=$(gid render)
-INPUT_GID=$(gid input)
 HOST_RUNTIME_DIR=$XDG_RUNTIME_DIR
 HOST_WAYLAND_DISPLAY=$WAYLAND_DISPLAY
 MEDIA_DIR=$media_dir

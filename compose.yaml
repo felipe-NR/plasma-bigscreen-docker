@@ -10,8 +10,8 @@ services:
         HTPC_GID: ${HTPC_GID:-1000}
     image: plasma-bigscreen-docker:latest
     container_name: plasma-bigscreen
-    # Host networking lets KDE Connect discover phones by broadcast and lets
-    # SDL receive udev hotplug events when the gamepad connects later.
+    # Host networking lets KDE Connect and Unified Remote find phones on the
+    # LAN by broadcast.
     network_mode: host
     shm_size: 1g
     # kwin_wayland ships with the cap_sys_nice file capability for realtime
@@ -25,20 +25,14 @@ services:
     group_add:
       - ${VIDEO_GID:?run scripts/setup-env.sh first}
       - ${RENDER_GID:?run scripts/setup-env.sh first}
-      - ${INPUT_GID:?run scripts/setup-env.sh first}
     devices:
       - /dev/dri
-    device_cgroup_rules:
-      # evdev nodes (major 13), so controllers paired after start still work.
-      - "c 13:* rmw"
     tmpfs:
       - /run/user/${HTPC_UID}:mode=0700,uid=${HTPC_UID},gid=${HTPC_GID}
     volumes:
       - ${HOST_RUNTIME_DIR}/${HOST_WAYLAND_DISPLAY}:/run/user/${HTPC_UID}/wayland-host
       - ${HOST_RUNTIME_DIR}/pulse/native:/run/user/${HTPC_UID}/pulse/native
       - ${HOST_RUNTIME_DIR}/pipewire-0:/run/user/${HTPC_UID}/pipewire-0
-      - /dev/input:/dev/input
-      - /run/udev:/run/udev:ro
       - home:/home/htpc
       - ${MEDIA_DIR:-./media}:/media:ro
 
