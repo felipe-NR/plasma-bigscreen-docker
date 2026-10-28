@@ -3,7 +3,8 @@
 -- title in English and in Portuguese.
 
 local tv_output = "HDMI-A-1"
-local tv_workspace = "10"
+-- Above 10, so the Omarchy bar workspace selector and SUPER+number leave it out.
+local tv_workspace = "11"
 
 hl.workspace_rule({ workspace = tv_workspace, monitor = tv_output })
 

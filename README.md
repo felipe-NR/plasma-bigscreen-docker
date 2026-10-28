@@ -85,8 +85,14 @@ hyprctl reload && hyprctl configerrors
 ```
 
 Set `tv_output` in that file to the TV output name from `hyprctl monitors`.
-The rule sends the Bigscreen window to workspace 10, fullscreen, without
-taking focus, and binds that workspace to the TV.
+The rule sends the Bigscreen window to workspace 11, fullscreen, without
+taking focus, and binds that workspace to the TV. Workspace 11 is outside the
+range the Omarchy bar selector and the `SUPER+number` bindings use, so the
+desktop workspaces stay as they were. To look at it on a single monitor:
+
+```sh
+hyprctl dispatch 'hl.dsp.focus({ workspace = "11" })'
+```
 
 ## Settings
 
