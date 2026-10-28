@@ -1,0 +1,7 @@
+#!/bin/sh
+# Unified Remote picks /dev/uinput when XDG_SESSION_TYPE is wayland, and uinput
+# devices land on the host compositor. Its X11 backend sends XTest events to
+# this session's Xwayland instead, which hands them to KWin through libei.
+export XDG_SESSION_TYPE=x11
+exec /opt/urserver/urserver --daemon --remotes=/opt/urserver/remotes \
+    --pidfile="$XDG_RUNTIME_DIR/urserver.pid"

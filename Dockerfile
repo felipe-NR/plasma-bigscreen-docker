@@ -58,7 +58,23 @@ RUN install -d /usr/local/share/applications \
 RUN groupadd -g "$HTPC_GID" htpc \
  && useradd -m -u "$HTPC_UID" -g "$HTPC_GID" -s /bin/bash htpc
 
-COPY container/start-bigscreen /usr/local/bin/start-bigscreen
+# Unified Remote server for the phone remote, from the vendor build checked
+# against a pinned hash.
+ARG URSERVER_VERSION=3.14.0.2574
+ARG URSERVER_SHA256=e3003654f6f940ddf44d66bbda95154d87efb319464cef159e087bc031d78431
+RUN curl -fsSLo /tmp/urserver.tar.gz \
+      "https://www.unifiedremote.com/static/builds/server/linux-x64/${URSERVER_VERSION##*.}/urserver-${URSERVER_VERSION}.tar.gz" \
+ && echo "${URSERVER_SHA256}  /tmp/urserver.tar.gz" | sha256sum -c - \
+ && install -d /opt/urserver \
+ && tar -xzf /tmp/urserver.tar.gz -C /opt/urserver --strip-components=1 \
+ && rm /tmp/urserver.tar.gz
+
+# Let X11 clients such as Unified Remote send input through Xwayland without
+# the KWin permission prompt, which nobody can answer from the couch.
+RUN printf '[Xwayland]\nXwaylandEisNoPrompt=true\n' >> /etc/xdg/kwinrc
+
+COPY container/start-bigscreen container/start-urserver /usr/local/bin/
+COPY container/urserver.desktop /etc/xdg/autostart/urserver.desktop
 
 ENV XDG_RUNTIME_DIR=/run/user/${HTPC_UID} \
     WAYLAND_DISPLAY=wayland-host \

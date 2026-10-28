@@ -117,12 +117,33 @@ omarchy restart shell
 Edits to the clone did not hot-reload on the test host, so restart the shell
 after copying.
 
+### Phone remote: Unified Remote
+
+The image ships the [Unified Remote](https://www.unifiedremote.com/) server
+(`/opt/urserver`, version pinned with its sha256 in the Dockerfile), started
+with the Bigscreen session. Install the Unified Remote app on the phone and
+pick the server from the list.
+
+The server runs with its X11 backend. Its key presses go to the session's
+Xwayland, which hands them to KWin through libei, so they reach Bigscreen
+whatever window has focus on the host. With its Wayland backend the server
+would create a `/dev/uinput` device, and the host compositor would deliver
+those keys to the focused host window instead.
+
+Ports: 9511/udp for discovery, 9512/tcp and 9512/udp for the connection. The
+web manager listens on `127.0.0.1:9510` only. With ufw:
+
+```sh
+sudo ufw allow from 192.168.1.0/24 to any port 9511:9512 proto udp comment 'Unified Remote'
+sudo ufw allow from 192.168.1.0/24 to any port 9512 proto tcp comment 'Unified Remote'
+```
+
 ### KDE Connect
 
-The container uses the host network, so the KDE Connect daemon inside it
-listens on the host ports 1714 to 1764. A host firewall that drops incoming
-traffic hides it from your phone. With ufw, allow those ports from your LAN
-(replace the subnet with yours):
+KDE Connect is the second phone remote. The container uses the host network,
+so the KDE Connect daemon inside it listens on the host ports 1714 to 1764. A
+host firewall that drops incoming traffic hides it from your phone. With ufw,
+allow those ports from your LAN (replace the subnet with yours):
 
 ```sh
 sudo ufw allow from 192.168.1.0/24 to any port 1714:1764 proto udp comment 'KDE Connect'
@@ -151,6 +172,9 @@ to the defaults below.
 - Hyprland sends no frame callbacks to windows on hidden workspaces, so the
   session barely moves while workspace 11 is out of view. Once the workspace
   is on screen it runs at full speed. On the TV it is always on screen.
+- `/etc/xdg/kwinrc` sets `XwaylandEisNoPrompt=true`, so any X11 client in
+  the session can send input without the KWin prompt. Only the session's own
+  apps can reach its Xwayland.
 - The container shares the host PipeWire server. Picking an audio output in
   Bigscreen changes the host default output too.
 - AMD GPUs expose no HDMI-CEC on Linux, so the TV remote needs a USB-CEC
