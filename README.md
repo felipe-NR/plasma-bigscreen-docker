@@ -101,6 +101,22 @@ desktop workspaces stay as they were. To look at it on a single monitor:
 hyprctl dispatch 'hl.dsp.focus({ workspace = "11" })'
 ```
 
+### Omarchy bar button
+
+`host/omarchy/Workspaces.qml` is the Omarchy workspaces widget with one
+addition: a "TV" button after the numbered workspaces that shows while
+workspace 11 has a window and jumps to it when pressed. Clone the built-in
+widget and replace its file:
+
+```sh
+omarchy plugin clone omarchy.workspaces
+cp host/omarchy/Workspaces.qml ~/.config/omarchy/plugins/$USER.workspaces/
+omarchy restart shell
+```
+
+Edits to the clone did not hot-reload on the test host, so restart the shell
+after copying.
+
 ### KDE Connect
 
 The container uses the host network, so the KDE Connect daemon inside it
