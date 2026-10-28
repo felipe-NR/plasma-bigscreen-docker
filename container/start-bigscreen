@@ -1,0 +1,12 @@
+#!/bin/sh
+# Starts Plasma Bigscreen as a nested Wayland session. KWin finds the host
+# compositor through WAYLAND_DISPLAY and opens the whole session as one window.
+set -eu
+
+if [ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+    echo "Host Wayland socket $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY is missing." >&2
+    echo "Run scripts/setup-env.sh from your graphical session." >&2
+    exit 1
+fi
+
+exec dbus-run-session plasma-bigscreen-wayland
