@@ -27,7 +27,14 @@ Working:
   controller connected after the container started.
 
 Not tested yet: the TV itself (the test host has one monitor for now), Kodi
-4K playback, the controller over Bluetooth, KDE Connect and CEC.
+4K playback, the controller over Bluetooth, KDE Connect pairing and CEC.
+
+## Apps
+
+From the Arch repositories: Kodi, mpv and Firefox. From the AUR:
+[Stremio](https://github.com/Stremio/stremio-linux-shell)
+(`stremio-linux-shell`), built in a separate Docker stage from a pinned AUR
+commit (`STREMIO_AUR_COMMIT` in the Dockerfile).
 
 ## How it works
 
@@ -94,6 +101,18 @@ desktop workspaces stay as they were. To look at it on a single monitor:
 hyprctl dispatch 'hl.dsp.focus({ workspace = "11" })'
 ```
 
+### KDE Connect
+
+The container uses the host network, so the KDE Connect daemon inside it
+listens on the host ports 1714 to 1764. A host firewall that drops incoming
+traffic hides it from your phone. With ufw, allow those ports from your LAN
+(replace the subnet with yours):
+
+```sh
+sudo ufw allow from 192.168.1.0/24 to any port 1714:1764 proto udp comment 'KDE Connect'
+sudo ufw allow from 192.168.1.0/24 to any port 1714:1764 proto tcp comment 'KDE Connect'
+```
+
 ## Settings
 
 `scripts/setup-env.sh` reads these variables when they are set and falls back
@@ -108,8 +127,14 @@ to the defaults below.
 ## Known limits
 
 - No Flatpak. bubblewrap needs user namespaces, which the default Docker
-  seccomp profile blocks, so apps come from the Arch repositories (Kodi, mpv
-  and Firefox are included).
+  seccomp profile blocks, so apps come from Arch packages. For the same
+  reason the QtWebEngine and WebKitGTK sandboxes are turned off.
+- The container shares the host network, so its Stremio streaming server
+  takes ports 11470 and 12470. Close Stremio on the host while Stremio runs
+  in Bigscreen, or the second one to start finds the ports taken.
+- Hyprland sends no frame callbacks to windows on hidden workspaces, so the
+  session barely moves while workspace 11 is out of view. Once the workspace
+  is on screen it runs at full speed. On the TV it is always on screen.
 - The container shares the host PipeWire server. Picking an audio output in
   Bigscreen changes the host default output too.
 - AMD GPUs expose no HDMI-CEC on Linux, so the TV remote needs a USB-CEC

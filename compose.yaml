@@ -1,3 +1,6 @@
+# Fixed so the container and volume names do not depend on the folder name.
+name: plasma-bigscreen-docker
+
 services:
   bigscreen:
     build:
