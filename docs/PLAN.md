@@ -55,12 +55,12 @@ whose UID matches the host user, so the mounted sockets work.
 
 ### 3. Window mode (MVP)
 
-Mount the host Wayland, PipeWire and PulseAudio sockets, `/dev/dri` and
-`/dev/input`, and keep `/home/htpc` in a named volume. Add the Hyprland window
-rule for the TV output.
+Mount the host Wayland, PipeWire and PulseAudio sockets and `/dev/dri`, and
+keep `/home/htpc` in a named volume. Add the Hyprland window rule for the TV
+output.
 
 Done when the Bigscreen home screen fills the TV, Kodi plays a 4K file with
-VA-API decoding, sound comes out of the TV and the controller moves through
+VA-API decoding, sound comes out of the TV and the phone remote moves through
 the menus.
 
 Checked on 2026-10-28: `startplasma-wayland` falls back to its non-systemd
