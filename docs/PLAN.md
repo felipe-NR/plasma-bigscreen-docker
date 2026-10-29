@@ -75,7 +75,10 @@ capability. Still open: focus behaviour once the TV is a second monitor.
    goes through Xwayland and libei into the nested KWin (ports 9511 and
    9512).
 2. KDE Connect on the phone as fallback remote and keyboard (ports 1716 and
-   1739 to 1764). Paired on 2026-10-28.
+   1739 to 1764). Paired on 2026-10-28. Its RemoteDesktop permission is
+   granted at session start.
+   Both touchpads move the Bigscreen pointer since KWin draws its own cursor
+   (`KWIN_FORCE_SW_CURSOR=1`) and keeps overlays off (`KWIN_USE_OVERLAYS=0`).
 3. The container keeps its own network namespace and publishes those ports on
    the LAN address. With host networking, the abstract X11 socket of the
    session's Xwayland took over `DISPLAY=:0` for X11 apps on the host. Phones

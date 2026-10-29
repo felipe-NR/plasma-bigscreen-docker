@@ -32,6 +32,13 @@ services:
     environment:
       LANG: ${HTPC_LANG:-en_US.UTF-8}
       TZ: ${HTPC_TZ:-UTC}
+      # Draw the cursor in KWin's own frames. Otherwise the host compositor
+      # draws it at the host pointer, and phone remotes move an invisible one.
+      KWIN_FORCE_SW_CURSOR: "1"
+      # Nested KWin puts overlay planes on subsurfaces. Hyprland replays the
+      # host pointer position whenever one of them unmaps, which yanks a cursor
+      # moved by a phone remote back to the host mouse.
+      KWIN_USE_OVERLAYS: "0"
     group_add:
       - ${VIDEO_GID:?run scripts/setup-env.sh first}
       - ${RENDER_GID:?run scripts/setup-env.sh first}

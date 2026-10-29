@@ -41,6 +41,18 @@ BarWidget {
   readonly property var tvWorkspace: root.workspaceById(root.tvWorkspaceId)
   readonly property bool tvRunning: tvWorkspace !== null && tvWorkspace.toplevels.values.length > 0
 
+  // Hyprland does not move the pointer when the workspace changes from the bar,
+  // so the host keeps drawing its hand cursor over the TV next to the one KWin
+  // draws. Moving the pointer into the window hands it to KWin, which hides it.
+  function focusTv() {
+    if (!root.bar) return
+    var id = root.tvWorkspaceId
+    var center = ".[] | select(.workspace.id == " + id + ") | \"\\(.at[0] + .size[0] / 2 | floor) \\(.at[1] + .size[1] / 2 | floor)\""
+    root.bar.run("hyprctl dispatch " + Util.shellQuote("hl.dsp.focus({ workspace = \"" + id + "\" })")
+      + " && hyprctl clients -j | jq -r " + Util.shellQuote(center)
+      + " | { read -r x y && hyprctl dispatch \"hl.dsp.cursor.move({ x = $x, y = $y })\"; }")
+  }
+
   readonly property real trailingGap: root.vertical ? 0 : Style.spaceReal(1.5)
 
   implicitWidth: grid.implicitWidth + trailingGap
@@ -85,7 +97,7 @@ BarWidget {
       verticalPadding: 6
       fixedWidth: root.vertical ? root.barSize : -1
       fixedHeight: root.barSize
-      onPressed: function() { root.focusWorkspace(root.tvWorkspaceId) }
+      onPressed: function() { root.focusTv() }
     }
   }
 }

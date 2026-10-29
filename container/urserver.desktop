@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Unified Remote Server
-Exec=/usr/local/bin/start-urserver
-NoDisplay=true

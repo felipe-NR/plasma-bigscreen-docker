@@ -1,0 +1,20 @@
+#!/bin/sh
+# Phone remotes for the Bigscreen session, started from XDG autostart.
+
+# KDE Connect injects its remote input through the RemoteDesktop portal.
+# Authorize it up front, as the Bigscreen inputhandler does for itself, so no
+# permission dialog shows up on the TV.
+for app in org.kde.kdeconnect.daemon kdeconnectd; do
+    gdbus call --session \
+        --dest org.freedesktop.impl.portal.PermissionStore \
+        --object-path /org/freedesktop/impl/portal/PermissionStore \
+        --method org.freedesktop.impl.portal.PermissionStore.SetPermission \
+        kde-authorized true remote-desktop "$app" '["yes"]' >/dev/null
+done
+
+# Unified Remote picks /dev/uinput when XDG_SESSION_TYPE is wayland, and uinput
+# devices land on the host compositor. Its X11 backend sends XTest events to
+# this session's Xwayland instead, which hands them to KWin through libei.
+export XDG_SESSION_TYPE=x11
+exec /opt/urserver/urserver --daemon --remotes=/opt/urserver/remotes \
+    --pidfile="$XDG_RUNTIME_DIR/urserver.pid"

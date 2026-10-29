@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Phone remotes
+Exec=/usr/local/bin/start-remotes
+NoDisplay=true

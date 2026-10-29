@@ -28,12 +28,12 @@ Working:
   restarts.
 - Unified Remote buttons from the phone (the Stremio remote: arrows, OK,
   back) move the Bigscreen and Stremio selection.
+- The Unified Remote and KDE Connect touchpads move the Bigscreen pointer,
+  and taps click where it points.
 - Host keyboard and mouse inside the Bigscreen window.
 
-Not working: the Unified Remote touchpad. See Known limits.
-
 Not tested yet: the TV itself (the test host has one monitor for now), Kodi
-4K playback, KDE Connect remote input and CEC.
+4K playback and CEC.
 
 ## Apps
 
@@ -56,8 +56,20 @@ Input comes from three places, and none of them needs `/dev/input` or
   shortcuts such as `SUPER+2` do nothing until you press Right Ctrl again.
 - Unified Remote sends XTest events to the session's Xwayland, which passes
   them to KWin through libei (see below).
-- KDE Connect runs inside the session as the second phone remote. Its
-  remote input plugin is not tested yet.
+- KDE Connect runs inside the session as the second phone remote and sends
+  its input through the RemoteDesktop portal, which also ends in libei.
+
+All three move one pointer, and the last one used wins. Two KWin variables
+in `compose.yaml` keep that pointer where the phone left it:
+
+- `KWIN_FORCE_SW_CURSOR=1` makes KWin draw the cursor in its own frames.
+  Without it the host compositor draws the cursor at the host mouse
+  position, and the phone moves a pointer nobody can see.
+- `KWIN_USE_OVERLAYS=0` keeps KWin from putting parts of the scene on
+  overlay planes, which a nested KWin creates as Wayland subsurfaces.
+  Hyprland replays the host pointer position to the window whenever one of
+  those subsurfaces unmaps, and every replay pulled the phone's pointer
+  back to the host mouse, every 2 to 5 seconds in testing.
 
 The container gets:
 
@@ -117,7 +129,10 @@ hyprctl dispatch 'hl.dsp.focus({ workspace = "11" })'
 
 `host/omarchy/Workspaces.qml` is the Omarchy workspaces widget with one
 addition: a "TV" button after the numbered workspaces that shows while
-workspace 11 has a window and jumps to it when pressed. Clone the built-in
+workspace 11 has a window and jumps to it when pressed. Hyprland leaves the
+pointer on the bar after that switch, and the host would keep drawing the
+bar's hand cursor over the TV next to the KWin cursor, so the button also
+moves the pointer to the middle of the Bigscreen window. Clone the built-in
 widget and replace its file:
 
 ```sh
@@ -137,9 +152,9 @@ with the Bigscreen session. Install the Unified Remote app on the phone and
 add the server by the host LAN address (`LAN_IP`, port 9512). Discovery by
 broadcast does not reach the container network.
 
-The server runs with its X11 backend. Its key presses go to the session's
-Xwayland, which hands them to KWin through libei, so they reach Bigscreen
-whatever window has focus on the host. With its Wayland backend the server
+The server runs with its X11 backend. Its key presses and touchpad motion go
+to the session's Xwayland, which hands them to KWin through libei, so they
+reach Bigscreen whatever window has focus on the host. With its Wayland backend the server
 would create a `/dev/uinput` device, and the host compositor would deliver
 those keys to the focused host window instead.
 
@@ -152,6 +167,10 @@ KDE Connect is the second phone remote. Compose publishes 1716/tcp and
 1716/udp for the connection and 1739 to 1764/tcp for file transfers, on
 `LAN_IP`. As with Unified Remote, the phone does not find the container by
 broadcast: in the KDE Connect app, add the device by IP with `LAN_IP`.
+
+The remote input plugin needs the RemoteDesktop portal, which would ask for
+permission on the TV. `container/start-remotes` grants it up front in the
+portal permission store, the way the Bigscreen inputhandler does for itself.
 
 ### Network and firewall
 
@@ -186,12 +205,11 @@ to the defaults below.
 - Hyprland sends no frame callbacks to windows on hidden workspaces, so the
   session barely moves while workspace 11 is out of view. Once the workspace
   is on screen it runs at full speed. On the TV it is always on screen.
-- No pointer from the phone. In window mode the visible pointer belongs to
-  the host compositor, and XTest pointer motion does not reach the session:
-  `xdotool mousemove` produces no X input events and leaves the pointer
-  where it was. Unified Remote keys and buttons work; its touchpad does not.
-  Use the host mouse (press "TV", then Right Ctrl to capture) when a pointer
-  is needed.
+- The host mouse and the phones share one pointer. While the host pointer
+  sits over the Bigscreen window, touching the host mouse moves the
+  Bigscreen pointer to it. On a single monitor the fullscreen window covers
+  the whole screen, so leave the host mouse alone while using the phone. With
+  the TV as a second output, keep the host pointer on the other monitor.
 - No game controllers. The Bigscreen inputhandler reads them through SDL,
   which needs `/dev/input`, `/run/udev` and the host `input` group in the
   container. That access also exposes the host keyboard, so it was dropped.
