@@ -32,8 +32,8 @@ Working:
   and taps click where it points.
 - Host keyboard and mouse inside the Bigscreen window.
 
-Not tested yet: the TV itself (the test host has one monitor for now), Kodi
-4K playback and CEC.
+Not tested yet: the TV itself (the test host has one monitor for now) and
+Stremio 4K HDR playback.
 
 ## Apps
 
@@ -41,6 +41,14 @@ From the Arch repositories: Kodi, mpv and Firefox. From the AUR:
 [Stremio](https://github.com/Stremio/stremio-linux-shell)
 (`stremio-linux-shell`), built in a separate Docker stage from a pinned AUR
 commit (`STREMIO_AUR_COMMIT` in the Dockerfile).
+
+Stremio's built-in player has no HDR output
+([#16](https://github.com/Stremio/stremio-linux-shell/issues/16),
+[#32](https://github.com/Stremio/stremio-linux-shell/issues/32)). For HDR,
+turn on its external player: Stremio then opens the stream in mpv, which
+the image sets up in `container/mpv.conf` with VA-API decoding and
+fullscreen. The HDR path is in [docs/PLAN.md](docs/PLAN.md), phase 5, and is
+not tested on an HDR display yet.
 
 ## How it works
 
@@ -220,8 +228,8 @@ to the defaults below.
   apps can reach its Xwayland.
 - The container shares the host PipeWire server. Picking an audio output in
   Bigscreen changes the host default output too.
-- AMD GPUs expose no HDMI-CEC on Linux, so the TV remote needs a USB-CEC
-  adapter such as the Pulse-Eight. Not tested yet.
+- No TV remote. AMD GPUs expose no HDMI-CEC on Linux, and a USB-CEC
+  adapter is out of scope for this project.
 - Warnings about the document portal (`fuse`) and `systemd1` in the logs are
   expected: the container has no FUSE and no systemd user session.
 

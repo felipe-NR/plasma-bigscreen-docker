@@ -75,6 +75,7 @@ RUN printf '[Xwayland]\nXwaylandEisNoPrompt=true\n' >> /etc/xdg/kwinrc
 
 COPY container/start-bigscreen container/start-remotes /usr/local/bin/
 COPY container/remotes.desktop /etc/xdg/autostart/remotes.desktop
+COPY container/mpv.conf /etc/mpv/mpv.conf
 
 ENV XDG_RUNTIME_DIR=/run/user/${HTPC_UID} \
     WAYLAND_DISPLAY=wayland-host \
