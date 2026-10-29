@@ -1,0 +1,6 @@
+#!/bin/sh
+# mpv for the TV, opened from Stremio's external player or the Bigscreen app
+# list. It runs on the host compositor instead of the nested KWin: in window
+# mode KWin only renders SDR, while a fullscreen HDR client of Hyprland
+# switches the TV to HDR. host/hypr/plasma_bigscreen.lua matches the app id.
+WAYLAND_DISPLAY=wayland-host exec mpv --wayland-app-id=bigscreen-mpv "$@"

@@ -16,6 +16,7 @@ Early work. Tested on 2026-10-28 with:
 | GPU | AMD Radeon 780M (Phoenix1), Mesa 26.2.5 |
 | Image | Arch Linux, Plasma Bigscreen 6.8.1 |
 | Remotes | Unified Remote 3.14 and KDE Connect on an Android phone |
+| TV | Hisense 4K with HDR10, HLG and Dolby Vision, on its HDMI 2.1 input |
 
 Working:
 
@@ -31,24 +32,44 @@ Working:
 - The Unified Remote and KDE Connect touchpads move the Bigscreen pointer,
   and taps click where it points.
 - Host keyboard and mouse inside the Bigscreen window.
+- The Bigscreen session on the TV at 3840x2160 and 60 Hz.
+- A 4K HEVC Main10 HDR10 test file through mpv in HDR: the TV switches to
+  its HDR picture mode while mpv plays and back to SDR when it closes.
+- Pausing and closing mpv over MPRIS.
 
-Not tested yet: the TV itself (the test host has one monitor for now) and
-Stremio 4K HDR playback.
+Not tested yet: a 4K HDR stream from Stremio's external player, and the
+phone media controls during playback.
 
 ## Apps
 
-From the Arch repositories: Kodi, mpv and Firefox. From the AUR:
+From the Arch repositories: Kodi, mpv (with `mpv-mpris`) and Firefox. From the AUR:
 [Stremio](https://github.com/Stremio/stremio-linux-shell)
 (`stremio-linux-shell`), built in a separate Docker stage from a pinned AUR
 commit (`STREMIO_AUR_COMMIT` in the Dockerfile).
 
+### HDR playback
+
 Stremio's built-in player has no HDR output
 ([#16](https://github.com/Stremio/stremio-linux-shell/issues/16),
-[#32](https://github.com/Stremio/stremio-linux-shell/issues/32)). For HDR,
-turn on its external player: Stremio then opens the stream in mpv, which
-the image sets up in `container/mpv.conf` with VA-API decoding and
-fullscreen. The HDR path is in [docs/PLAN.md](docs/PLAN.md), phase 5, and is
-not tested on an HDR display yet.
+[#32](https://github.com/Stremio/stremio-linux-shell/issues/32)), and the
+nested KWin renders SDR only (see Known limits). HDR video takes another
+route:
+
+1. Turn on the external player in Stremio's settings. Stremio then hands an
+   M3U playlist to the OpenURI portal, which opens it with `mpv.desktop`.
+2. The image's `mpv.desktop` runs `container/mpv-tv`, which starts mpv on the
+   host compositor, outside the nested KWin, with the app id
+   `bigscreen-mpv`.
+3. The Hyprland rule puts that window fullscreen on workspace 12, also on
+   the TV, and goes back to workspace 11 when it closes.
+4. mpv describes its output in the colorspace of the video
+   (`target-colorspace-hint-mode=source` in `container/mpv.conf`). For an
+   HDR video that is PQ, and Hyprland switches the TV to HDR while the
+   window is fullscreen (`render:cm_auto_hdr`, on by default). SDR videos
+   leave the TV in SDR.
+
+mpv decodes through VA-API, and `mpv-mpris` exposes it on the session bus,
+so the KDE Connect media controls can pause, seek and stop it.
 
 ## How it works
 
@@ -125,7 +146,8 @@ hyprctl reload && hyprctl configerrors
 
 Set `tv_output` in that file to the TV output name from `hyprctl monitors`.
 The rule sends the Bigscreen window to workspace 11, fullscreen, without
-taking focus, and binds that workspace to the TV. Workspace 11 is outside the
+taking focus, and binds that workspace to the TV. It also gives the HDR
+player its own workspace 12 on the TV (see HDR playback). Workspace 11 is outside the
 range the Omarchy bar selector and the `SUPER+number` bindings use, so the
 desktop workspaces stay as they were. To look at it on a single monitor:
 
@@ -228,6 +250,22 @@ to the defaults below.
   apps can reach its Xwayland.
 - The container shares the host PipeWire server. Picking an audio output in
   Bigscreen changes the host default output too.
+- The nested KWin renders SDR only. Its Wayland backend asks the host for
+  the preferred color only after a `preferred_changed` event, and Hyprland
+  sends that event only to surfaces on exactly one output. KWin does not
+  bind the host `wl_output`, so its window never counts as being on one,
+  and KWin renders and labels everything as SDR at 80 nits even with the TV
+  in HDR (seen in the Wayland protocol log). HDR video goes through mpv on
+  the host compositor instead.
+- During HDR playback, mpv is a host window: phone input still goes to the
+  Bigscreen session underneath, so only MPRIS (the KDE Connect media
+  controls) reaches mpv.
+- HDR needs the TV input in HDMI 2.0 mode. In its standard mode the
+  Hisense input announced 300 MHz TMDS and no HDMI Forum block, which
+  allows 4K30 at 8 bits only. With the TV's enhanced HDMI format on, its
+  HDMI 2.1 input announces 600 MHz TMDS. amdgpu on Linux has no HDMI 2.1
+  FRL, so the link stays on TMDS, where 4K60 at 10 bits RGB does not fit;
+  the bit depth the driver picks was not measured.
 - No TV remote. AMD GPUs expose no HDMI-CEC on Linux, and a USB-CEC
   adapter is out of scope for this project.
 - Warnings about the document portal (`fuse`) and `systemd1` in the logs are

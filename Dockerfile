@@ -35,7 +35,7 @@ RUN sed -i '/^NoExtract/d' /etc/pacman.conf \
       xdg-desktop-portal-kde breeze breeze-icons \
       mesa vulkan-radeon libva-utils xorg-xwayland \
       noto-fonts noto-fonts-emoji \
-      kodi mpv firefox \
+      kodi mpv mpv-mpris firefox \
  && pacman -U --noconfirm /tmp/aur/*.pkg.tar.zst \
  && rm -rf /tmp/aur /var/cache/pacman/pkg/*
 
@@ -73,9 +73,16 @@ RUN curl -fsSLo /tmp/urserver.tar.gz \
 # the KWin permission prompt, which nobody can answer from the couch.
 RUN printf '[Xwayland]\nXwaylandEisNoPrompt=true\n' >> /etc/xdg/kwinrc
 
-COPY container/start-bigscreen container/start-remotes /usr/local/bin/
+COPY container/start-bigscreen container/start-remotes container/mpv-tv /usr/local/bin/
 COPY container/remotes.desktop /etc/xdg/autostart/remotes.desktop
 COPY container/mpv.conf /etc/mpv/mpv.conf
+
+# Launchers and Stremio's external player open mpv through mpv.desktop, so
+# this copy, which shadows the packaged one, sends them to mpv-tv.
+RUN sed -e 's/^TryExec=mpv$/TryExec=mpv-tv/' \
+        -e 's/^Exec=mpv /Exec=mpv-tv /' \
+        /usr/share/applications/mpv.desktop > /usr/local/share/applications/mpv.desktop \
+ && grep -q '^Exec=mpv-tv ' /usr/local/share/applications/mpv.desktop
 
 ENV XDG_RUNTIME_DIR=/run/user/${HTPC_UID} \
     WAYLAND_DISPLAY=wayland-host \

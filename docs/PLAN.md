@@ -96,31 +96,38 @@ capability. Still open: focus behaviour once the TV is a second monitor.
 
 ### 5. Stremio in 4K HDR
 
-The chain from stream to TV, each link with what was checked:
+The chain from stream to TV, each link with what was checked on 2026-10-28:
 
-1. mpv decodes on the GPU. Checked on 2026-10-28 with a 4K HEVC Main10
-   HDR10 test file: zero-copy VA-API inside the session, and 106 fps with
-   `vaapi-copy` against the 24 fps the file needs.
-2. mpv tells KWin the stream is HDR. It uses `gpu-next` and
-   `target-colorspace-hint=auto` by default, finds KWin's
-   `wp_color_manager_v1`, and Vulkan offers HDR10 PQ swapchains. On the SDR
-   test monitor KWin prefers gamma 2.2, BT.709 and 80 nits, so mpv picks
-   sRGB and tone maps.
-3. KWin renders HDR when the host asks for it. Its Wayland backend takes the
-   color description Hyprland prefers for its window, HDR luminances
-   included, and labels its frames with it (KWin 6.8 source). Not checked
-   on an HDR output yet.
-4. Hyprland drives the TV in HDR: 3840x2160, `bitdepth = 10` and
-   `cm = "hdr"` in the monitor rule. Not checked yet.
-5. Stremio hands the stream to mpv. Turn on the external player in
-   Stremio's settings; mpv is the only handler for M3U playlists in the
-   image. Not checked yet, including whether the portal asks which app to
-   use.
+1. mpv decodes on the GPU: zero-copy VA-API with a 4K HEVC Main10 HDR10
+   test file, and 106 fps with `vaapi-copy` against the 24 fps it needs.
+2. The nested KWin cannot carry HDR. It asks Hyprland for the preferred
+   color only after a `preferred_changed` event, and Hyprland sends that
+   event only to surfaces on exactly one output, which needs the client to
+   bind `wl_output`. KWin's Wayland backend does not, so with the TV in HDR
+   (`cm = "hdr"`, `bitdepth = 10`) KWin still offered mpv gamma 2.2, BT.709
+   and 80 nits, and labelled its own frames the same way (Wayland protocol
+   log).
+3. mpv on the host compositor gets HDR. Started with `WAYLAND_DISPLAY` set
+   to the host socket, mpv receives PQ, BT.2020 and 203 nits reference and
+   picks an HDR10 ST2084 swapchain. With
+   `target-colorspace-hint-mode=source`, the TV in SDR and
+   `render:cm_auto_hdr` on, the TV switched to its "HDR Theater" picture
+   mode while mpv played fullscreen, and back when it closed.
+4. `container/mpv-tv` and the image's `mpv.desktop` start every mpv that a
+   launcher or the OpenURI portal opens that way, with the app id
+   `bigscreen-mpv`. The Hyprland rule puts it on workspace 12 on the TV and
+   a `window.close` hook goes back to workspace 11, so the Bigscreen window
+   keeps its fullscreen state. Launching `mpv.desktop` from inside the
+   session put mpv on workspace 12, and closing it over MPRIS went back.
+5. Stremio hands the stream to mpv through its external player option. Not
+   checked yet, including whether the portal asks which app to use.
 
-To measure once the TV is connected: the link mode, since amdgpu on Linux
-has no HDMI 2.1 FRL and HDMI TMDS tops out at 18 Gbps, below what 4K60
-10-bit RGB needs; and the nested output size, which should be 3840x2160 for
-4K video without scaling.
+The TV needs its enhanced HDMI format on the HDMI 2.1 input: in standard
+mode it announced 300 MHz TMDS, enough for 4K30 at 8 bits only. In enhanced
+mode it announces 600 MHz. amdgpu on Linux has no HDMI 2.1 FRL, so the link
+stays on TMDS, where 4K60 at 10 bits RGB does not fit; the bit depth the
+driver picks needs root to read from debugfs and was not measured. The
+nested output is 3840x2160 at scale 1.
 
 ### 6. Dedicated HTPC mode (optional)
 
