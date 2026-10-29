@@ -36,9 +36,15 @@ Working:
 - A 4K HEVC Main10 HDR10 test file through mpv in HDR: the TV switches to
   its HDR picture mode while mpv plays and back to SDR when it closes.
 - Pausing and closing mpv over MPRIS.
+- A 4K HDR BDRemux from Stremio's external player in HDR, with sound in
+  sync and mpv at about 5% of one core.
+- The KDE Connect media controls during playback, and the return to the
+  Bigscreen on stop with a single cursor.
+- OpenSubtitles subtitles for that stream through the mpv script: four in
+  Brazilian Portuguese and five in English, with the first Portuguese one
+  selected.
 
-Not tested yet: a 4K HDR stream from Stremio's external player, and the
-phone media controls during playback.
+Not tested yet: the KDE Connect run commands from the phone.
 
 ## Apps
 
@@ -55,8 +61,11 @@ Stremio's built-in player has no HDR output
 nested KWin renders SDR only (see Known limits). HDR video takes another
 route:
 
-1. Turn on the external player in Stremio's settings. Stremio then hands an
-   M3U playlist to the OpenURI portal, which opens it with `mpv.desktop`.
+1. In Stremio's settings, set "Play in external player" to "M3U Playlist".
+   Stremio then hands an M3U playlist to the OpenURI portal, which opens it
+   with `mpv.desktop` without asking: the image builds `mimeinfo.cache` for
+   its own launchers, and without it GIO found no handler and the portal
+   showed its app chooser.
 2. The image's `mpv.desktop` runs `container/mpv-tv`, which starts mpv on the
    host compositor, outside the nested KWin, with the app id
    `bigscreen-mpv`.
@@ -70,6 +79,24 @@ route:
 
 mpv decodes through VA-API, and `mpv-mpris` exposes it on the session bus,
 so the KDE Connect media controls can pause, seek and stop it.
+
+Stremio passes only the video URL to the external player, so its subtitles
+stay behind. `container/stremio-subtitles.lua`, an mpv script, brings them
+back:
+
+1. It looks the URL up in the streams Stremio keeps in its local storage
+   (WebKit's `localstorage.sqlite3`, read through `sqlite3` and `iconv`),
+   which gives the IMDb id and, for series, the season and episode.
+2. It asks the OpenSubtitles v3 addon, the one Stremio uses, with the video
+   hash from Stremio's streaming server when it answers.
+3. It adds up to five tracks each in Brazilian Portuguese, Portuguese and
+   English next to the embedded ones, and selects the first Portuguese one
+   unless a Portuguese subtitle or Portuguese audio is already on.
+
+The phone switches tracks and fixes the timing through KDE Connect's run
+commands, which `container/start-bigscreen` writes for every paired phone
+and `mpv-tv-command` sends to mpv's IPC socket: next and previous subtitle,
+show or hide, 0.1 s and 1 s later or earlier, and next audio track.
 
 ## How it works
 
@@ -258,8 +285,12 @@ to the defaults below.
   in HDR (seen in the Wayland protocol log). HDR video goes through mpv on
   the host compositor instead.
 - During HDR playback, mpv is a host window: phone input still goes to the
-  Bigscreen session underneath, so only MPRIS (the KDE Connect media
-  controls) reaches mpv.
+  Bigscreen session underneath, so mpv takes only the KDE Connect media
+  controls and run commands. Stremio's own subtitle menu and timing controls
+  do not apply there.
+- Stremio's built-in player shows an "HDR10" badge for HDR streams but
+  renders them in SDR, on the host as in the container: the badge describes
+  the file, not the output.
 - HDR needs the TV input in HDMI 2.0 mode. In its standard mode the
   Hisense input announced 300 MHz TMDS and no HDMI Forum block, which
   allows 4K30 at 8 bits only. With the TV's enhanced HDMI format on, its

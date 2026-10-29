@@ -119,8 +119,20 @@ The chain from stream to TV, each link with what was checked on 2026-10-28:
    a `window.close` hook goes back to workspace 11, so the Bigscreen window
    keeps its fullscreen state. Launching `mpv.desktop` from inside the
    session put mpv on workspace 12, and closing it over MPRIS went back.
-5. Stremio hands the stream to mpv through its external player option. Not
-   checked yet, including whether the portal asks which app to use.
+5. Stremio hands the stream to mpv through its external player option
+   ("M3U Playlist"). The portal first showed its app chooser: GIO found no
+   handler because the image's `mpv.desktop` sat in a folder without
+   `mimeinfo.cache`. With the cache, a 4K HDR BDRemux from Stremio played
+   in HDR with VA-API at about 5% of one core.
+6. Stremio's subtitles do not reach the external player, which gets only
+   the URL. `container/stremio-subtitles.lua` finds the title in Stremio's
+   local storage (the `streams` entry, in the WAL of WebKit's
+   `localstorage.sqlite3`) and loads the OpenSubtitles v3 subtitles Stremio
+   would show. Timing and track changes go through KDE Connect run
+   commands.
+
+Stremio's built-in player stays SDR on the host as well: it shows an
+"HDR10" badge for the file, but the TV did not switch while it played.
 
 The TV needs its enhanced HDMI format on the HDMI 2.1 input: in standard
 mode it announced 300 MHz TMDS, enough for 4K30 at 8 bits only. In enhanced

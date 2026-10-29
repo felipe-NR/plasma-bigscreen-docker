@@ -9,4 +9,54 @@ if [ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
     exit 1
 fi
 
+# KDE Connect run commands that change mpv's subtitle and audio tracks and
+# the subtitle timing from the phone, where the media controls only play,
+# pause and seek. They are written before kdeconnectd starts. A phone gets
+# them when it has no commands yet or an older version of this list; a list
+# without the version line came from someone else and stays as it is.
+# Phones paired during this session get them at the next start.
+commands_version=2
+
+kdeconnect_command() {
+    printf '\\"%s\\":{\\"name\\":\\"%s\\",\\"command\\":\\"mpv-tv-command %s\\"}' "$1" "$2" "$3"
+}
+
+kdeconnect_commands() {
+    case "${LANG:-}" in
+    pt*)
+        set -- "Legenda: próxima" "Legenda: anterior" "Legenda: mostrar ou ocultar" \
+            "Legenda: atrasar 0,1 s" "Legenda: adiantar 0,1 s" \
+            "Legenda: atrasar 1 s" "Legenda: adiantar 1 s" "Áudio: próxima faixa"
+        ;;
+    *)
+        set -- "Subtitles: next" "Subtitles: previous" "Subtitles: show or hide" \
+            "Subtitles: 0.1 s later" "Subtitles: 0.1 s earlier" \
+            "Subtitles: 1 s later" "Subtitles: 1 s earlier" "Audio: next track"
+        ;;
+    esac
+    printf '[General]\nbigscreenCommands=%s\ncommands="{' "$commands_version"
+    kdeconnect_command mpv-sub-next "$1" "cycle sub"; printf ','
+    kdeconnect_command mpv-sub-prev "$2" "cycle sub down"; printf ','
+    kdeconnect_command mpv-sub-toggle "$3" "cycle sub-visibility"; printf ','
+    kdeconnect_command mpv-sub-later "$4" "add sub-delay 0.1"; printf ','
+    kdeconnect_command mpv-sub-earlier "$5" "add sub-delay -0.1"; printf ','
+    kdeconnect_command mpv-sub-later-1s "$6" "add sub-delay 1"; printf ','
+    kdeconnect_command mpv-sub-earlier-1s "$7" "add sub-delay -1"; printf ','
+    kdeconnect_command mpv-audio-next "$8" "cycle audio"
+    printf '}"\n'
+}
+
+kdeconnect_dir="$HOME/.config/kdeconnect"
+if [ -f "$kdeconnect_dir/trusted_devices" ]; then
+    sed -n 's/^\[\(.*\)\]$/\1/p' "$kdeconnect_dir/trusted_devices" | while read -r device; do
+        config="$kdeconnect_dir/$device/kdeconnect_runcommand/config"
+        if grep -q '^commands=' "$config" 2>/dev/null; then
+            grep -q "^bigscreenCommands=$commands_version\$" "$config" && continue
+            grep -q '^bigscreenCommands=' "$config" || grep -q 'mpv-tv-command' "$config" || continue
+        fi
+        mkdir -p "${config%/config}"
+        kdeconnect_commands > "$config"
+    done
+fi
+
 exec dbus-run-session plasma-bigscreen-wayland

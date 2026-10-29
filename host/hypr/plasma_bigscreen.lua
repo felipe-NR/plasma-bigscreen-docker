@@ -29,8 +29,37 @@ hl.workspace_rule({ workspace = player_workspace, monitor = tv_output })
 
 o.window({ class = "^bigscreen-mpv$" }, { workspace = player_workspace, fullscreen = true })
 
+local function is_bigscreen(window)
+  return window.title:find("^KDE Wayland Compositor") ~= nil
+    or window.title:find("^Compositor KDE Wayland") ~= nil
+end
+
+-- KWin hides the host cursor over its window only once the pointer enters
+-- the window. When the window shows up under a pointer that does not move,
+-- as after mpv closes or the container restarts, the host keeps drawing its
+-- own cursor next to KWin's. Moving the pointer into the window hands it
+-- over; the one-pixel step makes sure Hyprland sees a motion.
+local function hand_pointer_to_bigscreen()
+  for _, window in ipairs(hl.get_windows()) do
+    if is_bigscreen(window) and window.workspace and window.workspace.active then
+      local x = window.at.x + math.floor(window.size.x / 2)
+      local y = window.at.y + math.floor(window.size.y / 2)
+      hl.dispatch(hl.dsp.cursor.move({ x = x + 1, y = y }))
+      hl.dispatch(hl.dsp.cursor.move({ x = x, y = y }))
+      return
+    end
+  end
+end
+
 hl.on("window.close", function(window)
   if window.class == "bigscreen-mpv" then
     hl.dispatch(hl.dsp.focus({ workspace = tv_workspace }))
+    hl.timer(hand_pointer_to_bigscreen, { timeout = 300, type = "oneshot" })
+  end
+end)
+
+hl.on("window.open", function(window)
+  if is_bigscreen(window) then
+    hl.timer(hand_pointer_to_bigscreen, { timeout = 1000, type = "oneshot" })
   end
 end)

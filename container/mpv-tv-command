@@ -1,0 +1,5 @@
+#!/bin/sh
+# Sends one mpv input command, in input.conf syntax such as "cycle sub", to
+# the mpv that mpv-tv started. KDE Connect run commands use it to change
+# subtitle and audio tracks from the phone.
+printf '%s\n' "$*" | socat - "UNIX-CONNECT:$XDG_RUNTIME_DIR/mpv-tv.sock"
