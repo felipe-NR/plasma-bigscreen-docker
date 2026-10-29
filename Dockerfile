@@ -39,6 +39,22 @@ RUN sed -i '/^NoExtract/d' /etc/pacman.conf \
  && pacman -U --noconfirm /tmp/aur/*.pkg.tar.zst \
  && rm -rf /tmp/aur /var/cache/pacman/pkg/*
 
+# Stremio's streaming server runs on node. On 2026-10-28 Arch shipped nodejs
+# 26.12.1-2 linked against libsimdjson.so.34 next to simdjson 5.0.8, which
+# provides libsimdjson.so.35, so node did not start. When node fails, install
+# the last simdjson with that soname from the Arch Linux Archive; once nodejs
+# is rebuilt this step does nothing. The build stops if node still fails.
+ARG SIMDJSON_FALLBACK=5.0.5-1
+ARG SIMDJSON_FALLBACK_SHA256=39c50dc6d0f9c54c12cf494fcb1e8435156ecd192f86cf6134e9ff3f8d1832d5
+RUN if ! node --version >/dev/null 2>&1; then \
+      curl -fsSLo /tmp/simdjson.pkg.tar.zst \
+        "https://archive.archlinux.org/packages/s/simdjson/simdjson-1%3A${SIMDJSON_FALLBACK}-x86_64.pkg.tar.zst" \
+   && echo "${SIMDJSON_FALLBACK_SHA256}  /tmp/simdjson.pkg.tar.zst" | sha256sum -c - \
+   && pacman -U --noconfirm /tmp/simdjson.pkg.tar.zst \
+   && rm /tmp/simdjson.pkg.tar.zst; \
+    fi \
+ && node --version
+
 RUN for locale in $LOCALES; do \
       sed -i "s/^#\(${locale} UTF-8\)/\1/" /etc/locale.gen; \
     done \
